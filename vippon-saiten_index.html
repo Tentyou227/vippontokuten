@@ -1,0 +1,398 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>VIPPON GRAND PRIX 採点</title>
+<style>
+  :root{
+    --stage:#141121; --panel:#1e1930; --panel-2:#272036;
+    --ink:#f6f2e9; --muted:#9a93b4; --line:rgba(246,242,233,.12);
+    --gold:#ffc247; --gold-deep:#e8a317;
+    --buzzer:#ff5c57; --buzzer-deep:#cf3d39;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:
+    radial-gradient(1200px 700px at 50% -10%, #2a2342 0%, var(--stage) 60%) fixed;
+    color:var(--ink);
+    font-family:system-ui,-apple-system,"Hiragino Sans","Hiragino Kaku Gothic ProN","Noto Sans JP","Yu Gothic",sans-serif;
+    -webkit-font-smoothing:antialiased;}
+  body{min-height:100dvh;padding:18px 16px 40px;max-width:760px;margin:0 auto}
+  button{font-family:inherit;cursor:pointer;border:none;color:inherit}
+  a{color:var(--gold)}
+  .eyebrow{font-size:11px;letter-spacing:.34em;text-transform:uppercase;color:var(--gold);font-weight:800}
+  h1{margin:.15em 0 0;font-size:clamp(22px,6vw,34px);font-weight:900;letter-spacing:.02em;line-height:1.05}
+  .sub{color:var(--muted);font-size:13px;margin-top:6px}
+
+  .overlay{position:fixed;inset:0;background:rgba(12,10,20,.88);backdrop-filter:blur(6px);
+    display:flex;align-items:center;justify-content:center;padding:22px;z-index:50}
+  .card{background:linear-gradient(180deg,var(--panel),var(--panel-2));border:1px solid var(--line);
+    border-radius:20px;padding:26px 22px;width:100%;max-width:460px;box-shadow:0 30px 80px rgba(0,0,0,.5);max-height:90dvh;overflow:auto}
+  .card h2{margin:14px 0 4px;font-size:20px;font-weight:900}
+  .card p{margin:0 0 14px;color:var(--muted);font-size:13px;line-height:1.65}
+  .card ol{margin:0 0 14px;padding-left:20px;color:var(--ink);font-size:13px;line-height:1.7}
+  .card code{background:#100d1c;border:1px solid var(--line);border-radius:6px;padding:1px 6px;font-size:12px}
+  label{display:block;font-size:12px;color:var(--muted);margin:0 0 6px;font-weight:700}
+  input[type=text]{width:100%;background:#100d1c;border:1px solid var(--line);
+    color:var(--ink);border-radius:12px;padding:13px 14px;font-size:16px;outline:none}
+  input:focus{border-color:var(--gold)}
+  .btn{display:block;width:100%;padding:14px;border-radius:13px;font-size:16px;font-weight:800;margin-top:12px}
+  .btn-gold{background:linear-gradient(180deg,var(--gold),var(--gold-deep));color:#2a1c00}
+  .btn-ghost{background:transparent;border:1px solid var(--line);color:var(--ink);font-weight:700}
+  .hint{font-size:11px;color:var(--muted);margin-top:14px;line-height:1.5;text-align:center}
+
+  .top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+  .gear{flex:none;background:var(--panel);border:1px solid var(--line);border-radius:11px;
+    width:42px;height:42px;font-size:18px;color:var(--muted)}
+  .gear:hover{color:var(--ink)}
+
+  .qbanner{margin:18px 0 4px;text-align:center}
+  .qbanner .qn{font-size:clamp(24px,7vw,36px);font-weight:900;letter-spacing:.03em}
+  .qbanner .qn b{color:var(--gold)}
+  .qbanner .qs{display:block;font-size:11px;letter-spacing:.34em;color:var(--muted);font-weight:800;margin-top:3px}
+
+  .board{margin:14px 0;text-align:center;padding:26px 16px;border-radius:22px;
+    background:radial-gradient(140% 120% at 50% 0%, #2c2547, var(--panel));border:1px solid var(--line);position:relative;overflow:hidden}
+  .board .lbl{font-size:11px;letter-spacing:.3em;text-transform:uppercase;color:var(--muted);font-weight:800}
+  .score{font-size:clamp(64px,22vw,120px);font-weight:900;line-height:.92;font-variant-numeric:tabular-nums;
+    color:var(--gold);text-shadow:0 0 38px rgba(255,194,71,.35);margin:2px 0}
+  .score .of{color:var(--ink);opacity:.55;font-size:.34em;font-weight:800;margin-left:.06em}
+  .perfect-stamp{display:none;margin-top:6px;font-weight:900;letter-spacing:.16em;color:#2a1c00;
+    background:linear-gradient(180deg,var(--gold),var(--gold-deep));padding:6px 16px;border-radius:999px;font-size:15px}
+  .board.win .perfect-stamp{display:inline-block;animation:pop .4s ease}
+  .board.win{border-color:var(--gold);box-shadow:0 0 0 1px var(--gold),0 0 60px rgba(255,194,71,.25) inset}
+  @keyframes pop{0%{transform:scale(.6);opacity:0}60%{transform:scale(1.08)}100%{transform:scale(1)}}
+  #fx{position:absolute;inset:0;pointer-events:none}
+  .progress{display:flex;align-items:center;gap:12px;max-width:560px;margin:18px auto 4px}
+  .lights{flex:1;display:flex;gap:4px;height:34px;align-items:stretch}
+  .seg{flex:1;min-width:5px;border-radius:4px;background:#0d0a18;border:1px solid var(--line);
+    transition:background .25s, box-shadow .25s, border-color .25s}
+  .seg.on{background:linear-gradient(180deg,#fff0c2,var(--gold) 40%,var(--gold-deep));
+    border-color:var(--gold);box-shadow:0 0 12px rgba(255,194,71,.85),0 0 3px rgba(255,194,71,.9) inset}
+  .goal{flex:none;font-size:24px;line-height:1;filter:grayscale(.6) opacity(.55);transition:.3s}
+  .board.win .goal{filter:none;animation:wave .5s ease}
+  @keyframes wave{0%,100%{transform:rotate(0)}30%{transform:rotate(-16deg)}60%{transform:rotate(12deg)}}
+  .remain{font-size:13px;font-weight:800;color:var(--muted);letter-spacing:.04em;margin-top:2px}
+  .board.win .remain{color:var(--gold)}
+
+  /* ---- VIPPON 演出 ---- */
+  #vippon{position:fixed;inset:0;z-index:60;display:none;align-items:center;justify-content:center;
+    pointer-events:none;background:radial-gradient(circle at 50% 50%,rgba(40,20,70,.55),rgba(8,6,16,.86))}
+  #vippon.show{display:flex;animation:vfade 2.2s forwards}
+  @keyframes vfade{0%{opacity:0}7%{opacity:1}82%{opacity:1}100%{opacity:0}}
+  .voct{position:relative;width:min(80vw,540px);aspect-ratio:1.18/1;display:flex;align-items:center;justify-content:center;
+    clip-path:polygon(30% 0,70% 0,100% 30%,100% 70%,70% 100%,30% 100%,0 70%,0 30%);
+    background:
+      repeating-conic-gradient(from 0deg,rgba(0,0,0,.16) 0deg 5deg,rgba(255,255,255,.06) 5deg 10deg),
+      radial-gradient(circle at 50% 50%,#ffe08a 0%,#ffc247 42%,#cf8a0c 100%);
+    box-shadow:0 0 90px rgba(255,194,71,.65),0 0 0 3px #ffe08a inset;animation:vpop .6s cubic-bezier(.2,1.35,.4,1)}
+  @keyframes vpop{0%{transform:scale(.25) rotate(-8deg);opacity:0}60%{transform:scale(1.14) rotate(3deg)}100%{transform:scale(1) rotate(0)}}
+  .vband{position:absolute;left:-6%;right:-6%;top:36%;height:28%;background:#13101c;transform:skewY(-4deg);
+    box-shadow:0 6px 0 rgba(0,0,0,.35)}
+  .vword{position:relative;z-index:2;font-weight:900;font-size:clamp(44px,12vw,104px);letter-spacing:.03em;
+    color:#ffd873;transform:skewY(-4deg);
+    text-shadow:0 2px 0 #8a5a00,0 4px 0 #6b4500,0 7px 16px rgba(0,0,0,.55)}
+
+  .sect{font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);font-weight:800;margin:22px 4px 10px}
+  .judges{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px}
+  .jcard{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:13px 14px;transition:.15s}
+  .jcard.me{border-color:var(--gold);background:linear-gradient(180deg,#2a2342,var(--panel))}
+  .jname{font-weight:800;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .jpts{font-size:13px;color:var(--muted);margin-top:2px}
+  .dots{display:flex;gap:6px;margin-top:9px;flex-wrap:wrap}
+  .dot{width:14px;height:14px;border-radius:50%;background:#100d1c;border:1px solid var(--line)}
+  .dot.on{background:var(--gold);border-color:var(--gold);box-shadow:0 0 10px rgba(255,194,71,.6)}
+  .empty{color:var(--muted);font-size:13px;padding:18px 4px;text-align:center}
+
+  #mine{margin-top:24px}
+  .buzz{width:100%;padding:34px 16px;border-radius:22px;font-size:26px;font-weight:900;letter-spacing:.04em;
+    background:radial-gradient(120% 120% at 50% 0%, #ff7a76, var(--buzzer));color:#3a0a08;
+    box-shadow:0 14px 0 var(--buzzer-deep),0 20px 36px rgba(255,92,87,.3);transition:transform .06s, box-shadow .06s;
+    -webkit-tap-highlight-color:transparent;touch-action:manipulation}
+  .buzz:active:not(:disabled){transform:translateY(10px);box-shadow:0 4px 0 var(--buzzer-deep)}
+  .buzz:disabled{background:#3a3350;color:var(--muted);box-shadow:0 6px 0 #2a2440;cursor:default}
+  .buzz small{display:block;font-size:13px;font-weight:700;letter-spacing:.02em;margin-top:6px;opacity:.85}
+  .row{display:flex;gap:10px;margin-top:12px}
+  .row .btn-ghost{margin-top:0;flex:1}
+  .flash{position:fixed;inset:0;background:radial-gradient(circle at 50% 60%,rgba(255,194,71,.5),transparent 60%);
+    opacity:0;pointer-events:none;z-index:40}
+
+  #settings{display:none;margin-top:18px;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:18px}
+  #settings.open{display:block}
+  #settings h3{margin:0 0 12px;font-size:14px;font-weight:900}
+  .field{margin-bottom:16px}
+  .stepper{display:flex;align-items:center;gap:14px}
+  .stepper button{width:42px;height:42px;border-radius:11px;background:var(--panel-2);border:1px solid var(--line);font-size:22px;font-weight:800}
+  .stepper .val{font-size:20px;font-weight:900;min-width:60px;text-align:center}
+  .primary{background:linear-gradient(180deg,var(--gold),var(--gold-deep));color:#2a1c00;font-weight:800;width:100%;padding:14px;border-radius:12px}
+  .danger{background:transparent;border:1px solid var(--buzzer);color:#ff8d89;font-weight:800;width:100%;padding:13px;border-radius:12px;margin-top:10px}
+  .sethint{font-size:11px;color:var(--muted);margin-top:6px;line-height:1.5}
+  .muted-toggle{display:flex;align-items:center;justify-content:space-between;font-size:14px;font-weight:700}
+  .toggle{width:48px;height:28px;border-radius:999px;background:#100d1c;border:1px solid var(--line);position:relative;flex:none}
+  .toggle::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:var(--muted);transition:.15s}
+  .toggle.on{background:var(--gold)}
+  .toggle.on::after{left:23px;background:#2a1c00}
+  .conn{position:fixed;left:0;right:0;bottom:0;background:var(--buzzer-deep);color:#fff;font-size:13px;
+    text-align:center;padding:10px;display:none;z-index:30}
+  @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+
+<!-- SETUP (Firebase未設定のとき) -->
+<div id="setup" class="overlay" style="display:none">
+  <div class="card">
+    <div class="eyebrow">セットアップ</div>
+    <h2>あと一歩で公開できます</h2>
+    <p>このアプリは無料のリアルタイム置き場「Firebase」とつないで動きます。下の手順は5分ほどです。</p>
+    <ol>
+      <li><a href="https://console.firebase.google.com/" target="_blank">Firebase</a> で無料プロジェクトを作成</li>
+      <li>「Realtime Database」を作成（ロケーションは任意）</li>
+      <li>歯車 → プロジェクトの設定 → アプリ「&lt;/&gt;（ウェブ）」を追加し、表示される <code>firebaseConfig</code> をコピー</li>
+      <li>このHTMLを開いて、<code>const firebaseConfig = {…}</code> の中身を貼り替える</li>
+      <li>Realtime Databaseのルールを <code>{"rules":{".read":true,".write":true}}</code> にして公開</li>
+    </ol>
+    <p>そのあと、このHTMLを無料の置き場（GitHub Pages / Netlify / Cloudflare Pages）に上げると、配れるURLができます。</p>
+  </div>
+</div>
+
+<!-- ONBOARDING -->
+<div id="join" class="overlay" style="display:none">
+  <div class="card">
+    <div class="eyebrow">VIPPON GRAND PRIX</div>
+    <h2>採点に参加</h2>
+    <p>ジャッジは名前を入れてボタンを押すと点が入ります。1回押すと1点、もう1回で2点まで。</p>
+    <label for="nm">あなたの名前(ジャッジ名)</label>
+    <input id="nm" type="text" maxlength="20" placeholder="例：店長" autocomplete="off">
+    <button class="btn btn-gold" id="joinJudge">ジャッジとして参加</button>
+    <button class="btn btn-ghost" id="joinWatch">観戦する(押さない)</button>
+    <div class="hint">同じ名前で入り直せば、その問題の点はそのまま引き継がれます。</div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app" style="display:none">
+  <div class="top">
+    <div>
+      <div class="eyebrow">VIPPON GRAND PRIX</div>
+      <h1>採点ボード</h1>
+      <div class="sub" id="meLabel"></div>
+    </div>
+    <button class="gear" id="gear" title="設定">⚙︎</button>
+  </div>
+
+  <div class="qbanner">
+    <div class="qn">第 <b id="qNo">1</b> 問</div>
+    <span class="qs">採点中</span>
+  </div>
+
+  <div class="board" id="board">
+    <div class="lbl">合計得点</div>
+    <div class="score"><span id="total">0</span><span class="of">/ <span id="perfect">0</span></span></div>
+    <div class="progress">
+      <div class="lights" id="lights"></div>
+      <div class="goal">🏁</div>
+    </div>
+    <div class="remain" id="remain"></div>
+    <div class="perfect-stamp">満 点 ！</div>
+    <canvas id="fx"></canvas>
+  </div>
+
+  <div class="sect">ジャッジ（最大5人）</div>
+  <div class="judges" id="judges"></div>
+
+  <div id="mine" style="display:none">
+    <button class="buzz" id="buzz">押す ＋1<small id="buzzsub">あと2点ぶん押せます</small></button>
+    <div class="row"><button class="btn-ghost" id="undo">取り消し（−1）</button></div>
+  </div>
+
+  <div id="settings">
+    <h3>進行（あなたが操作すると全員に反映されます）</h3>
+    <div class="field">
+      <label>問題番号</label>
+      <div class="stepper">
+        <button id="qMinus">−</button>
+        <span class="val">第 <span id="qVal">1</span> 問</span>
+        <button id="qPlus">＋</button>
+      </div>
+      <div class="sethint">番号だけを直したいときに使います（点数はそのまま）。</div>
+    </div>
+    <div class="field">
+      <button class="primary" id="nextQ">次の問題へ進む（点数リセット）</button>
+      <button class="danger" id="resetScores">今の問題をやり直す（点数だけリセット）</button>
+      <div class="sethint">どちらも、ジャッジ全員の点が0に戻ります。</div>
+    </div>
+    <div class="field">
+      <label>1人あたりの最大点（ボタンを押せる回数）</label>
+      <div class="stepper">
+        <button id="mMinus">−</button>
+        <span class="val" id="mVal">2</span>
+        <button id="mPlus">＋</button>
+      </div>
+      <div class="sethint">満点 ＝ ジャッジの人数 × この点数。例）5人 × 2点 ＝ 10点満点。</div>
+    </div>
+    <div class="field" style="margin-bottom:0">
+      <div class="muted-toggle">
+        <span>押したときの効果音</span>
+        <div class="toggle on" id="soundTog"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="flash" id="flash"></div>
+<div id="vippon"><div class="voct"><div class="vband"></div><span class="vword">VIPPON</span></div></div>
+<div class="conn" id="conn">接続が切れています。ネットワークを確認してください。</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script>
+/* =================================================================
+   ① ここに Firebase の設定を貼り付けてください（PASTE_… を置き換え）
+   ================================================================= */
+const firebaseConfig = {
+  apiKey: "PASTE_API_KEY",
+  authDomain: "PASTE.firebaseapp.com",
+  databaseURL: "https://PASTE-default-rtdb.firebaseio.com",
+  projectId: "PASTE",
+  appId: "PASTE_APP_ID"
+};
+/* ================================================================= */
+
+const $=id=>document.getElementById(id);
+const ROOM='vippon';   // 別のイベント用に分けたいときはここを変える
+let rootRef=null, data={}, state={maxPerJudge:2,qNo:1};
+let me=null, myKey=null, myJoined=0, myPts=0, soundOn=true, winShown=false, ac=null;
+
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+/* ---------- audio / fx ---------- */
+function ding(p){if(!soundOn)return;try{ac=ac||new(window.AudioContext||window.webkitAudioContext)();
+  const o=ac.createOscillator(),g=ac.createGain();o.type='triangle';o.frequency.value=p?880:660;
+  o.connect(g);g.connect(ac.destination);g.gain.setValueAtTime(.0001,ac.currentTime);
+  g.gain.exponentialRampToValueAtTime(.25,ac.currentTime+.01);
+  g.gain.exponentialRampToValueAtTime(.0001,ac.currentTime+.25);o.start();o.stop(ac.currentTime+.26);}catch(e){}}
+function fanfare(){if(!soundOn)return;try{ac=ac||new(window.AudioContext||window.webkitAudioContext)();
+  [660,880,1175].forEach((f,i)=>{const o=ac.createOscillator(),g=ac.createGain(),t=ac.currentTime+i*.12;
+  o.type='triangle';o.frequency.value=f;o.connect(g);g.connect(ac.destination);
+  g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(.3,t+.02);
+  g.gain.exponentialRampToValueAtTime(.0001,t+.3);o.start(t);o.stop(t+.32);});}catch(e){}}
+function flash(){const f=$('flash');f.style.transition='none';f.style.opacity='.9';
+  requestAnimationFrame(()=>{f.style.transition='opacity .4s';f.style.opacity='0';});}
+function vipponReveal(){const v=$('vippon');v.classList.remove('show');void v.offsetWidth;
+  v.classList.add('show');setTimeout(()=>v.classList.remove('show'),2200);}
+function confetti(){if(matchMedia('(prefers-reduced-motion:reduce)').matches)return;
+  const cv=$('fx'),b=$('board').getBoundingClientRect();cv.width=b.width;cv.height=b.height;
+  const ctx=cv.getContext('2d');const cols=['#ffc247','#ff5c57','#7ce6a6','#f6f2e9','#b98bff'];
+  const ps=Array.from({length:90},()=>({x:b.width/2,y:b.height*.4,vx:(Math.random()-.5)*9,vy:-Math.random()*9-3,
+    c:cols[Math.random()*cols.length|0],s:3+Math.random()*4,r:Math.random()*6}));
+  let t=0;(function loop(){t++;ctx.clearRect(0,0,cv.width,cv.height);
+    ps.forEach(p=>{p.vy+=.28;p.x+=p.vx;p.y+=p.vy;p.r+=.2;ctx.save();ctx.translate(p.x,p.y);ctx.rotate(p.r);
+      ctx.fillStyle=p.c;ctx.fillRect(-p.s/2,-p.s/2,p.s,p.s*1.6);ctx.restore();});
+    if(t<90)requestAnimationFrame(loop);else ctx.clearRect(0,0,cv.width,cv.height);})();}
+
+/* ---------- derive ---------- */
+function judges(){
+  const o=data.judges||{};
+  return Object.keys(o).map(k=>Object.assign({key:k},o[k]))
+    .sort((a,b)=>(a.joined||0)-(b.joined||0));
+}
+function syncMyPts(){
+  if(!me||!myKey)return;
+  const n=(data.judges||{})[myKey];
+  if(n&&typeof n.points==='number')myPts=n.points;   // ホストのリセット等を反映
+}
+
+/* ---------- render ---------- */
+function render(){
+  syncMyPts();
+  $('qNo').textContent=state.qNo;$('qVal').textContent=state.qNo;$('mVal').textContent=state.maxPerJudge;
+  const js=judges(),g=$('judges');
+  if(!js.length){g.innerHTML='<div class="empty">まだジャッジがいません。リンクを共有して参加してもらいましょう。</div>';}
+  else{g.innerHTML=js.map(j=>{const isMe=me&&j.key===myKey;let d='';
+    for(let i=0;i<state.maxPerJudge;i++)d+='<span class="dot'+(i<(j.points||0)?' on':'')+'"></span>';
+    return '<div class="jcard'+(isMe?' me':'')+'"><div class="jname">'+esc(j.name)+(isMe?' （あなた）':'')+
+      '</div><div class="jpts">'+(j.points||0)+' / '+state.maxPerJudge+' 点</div><div class="dots">'+d+'</div></div>';
+  }).join('');}
+  const total=js.reduce((s,j)=>s+(j.points||0),0),perfect=js.length*state.maxPerJudge;
+  $('total').textContent=total;$('perfect').textContent=perfect;
+  const segCount=perfect<=0?0:(perfect<=20?perfect:20);
+  const lit=perfect<=0?0:(perfect<=20?total:Math.round(total/perfect*20));
+  const lights=$('lights');
+  if(lights.childElementCount!==segCount){let h='';for(let i=0;i<segCount;i++)h+='<span class="seg"></span>';lights.innerHTML=h;}
+  Array.prototype.forEach.call(lights.children,(el,i)=>el.classList.toggle('on',i<lit));
+  $('remain').textContent=perfect===0?'ジャッジの参加を待っています':(total>=perfect?'VIPPON！満点です':'満点まであと '+(perfect-total)+' 点');
+  const won=perfect>0&&total>=perfect;$('board').classList.toggle('win',won);
+  if(won&&!winShown){winShown=true;confetti();fanfare();vipponReveal();}if(!won)winShown=false;
+  if(me){$('mine').style.display='block';const mp=myPts,left=state.maxPerJudge-mp;
+    $('buzz').disabled=left<=0;$('buzz').firstChild.textContent=left<=0?'押し切りました':'押す ＋1';
+    $('buzzsub').textContent=left<=0?('持ち点は満タンです（'+mp+'点）'):('あと'+left+'点ぶん押せます');
+    $('undo').disabled=mp<=0;$('undo').style.opacity=mp<=0?.45:1;}
+}
+
+/* ---------- actions ---------- */
+function press(){if(!me||!myKey)return;if(myPts>=state.maxPerJudge)return;
+  myPts++;flash();ding(myPts>1);rootRef.child('judges/'+myKey).update({points:myPts});}
+function undo(){if(!me||!myKey)return;if(myPts<=0)return;
+  myPts--;rootRef.child('judges/'+myKey).update({points:myPts});}
+function resetScores(advanceQ,msg){if(!confirm(msg))return;
+  const up={};if(advanceQ)up['state/qNo']=(state.qNo||1)+1;
+  const o=data.judges||{};Object.keys(o).forEach(k=>{up['judges/'+k+'/points']=0;});
+  rootRef.update(up);$('settings').classList.remove('open');}
+function setQ(d){let v=Math.max(1,Math.min(99,(state.qNo||1)+d));rootRef.child('state/qNo').set(v);}
+function setMax(d){let v=Math.max(1,Math.min(9,(state.maxPerJudge||2)+d));
+  const up={'state/maxPerJudge':v},o=data.judges||{};
+  Object.keys(o).forEach(k=>{if((o[k].points||0)>v)up['judges/'+k+'/points']=v;});
+  rootRef.update(up);}
+
+/* ---------- join ---------- */
+function joinAsJudge(){const name=$('nm').value.trim();if(!name){$('nm').focus();return;}
+  const o=data.judges||{};
+  if(!myKey&&Object.keys(o).length>=5){alert('ジャッジはすでに5人です。観戦で参加してください。');return;}
+  me={name};
+  if(!myKey){myKey=rootRef.child('judges').push().key;myJoined=Date.now();myPts=0;}
+  try{localStorage.setItem('vgpName',name);}catch(e){}
+  const node=rootRef.child('judges/'+myKey);
+  node.set({name,points:myPts,joined:myJoined});
+  node.onDisconnect().remove();           // タブを閉じる/切断で自動削除（幽霊防止）
+  $('meLabel').textContent='ジャッジ：'+name;startApp();}
+function joinAsWatcher(){me=null;$('meLabel').textContent='観戦中';$('mine').style.display='none';startApp();}
+function startApp(){$('join').style.display='none';$('app').style.display='block';render();}
+
+/* ---------- boot ---------- */
+function showSetup(){$('setup').style.display='flex';}
+function boot(){
+  if(/PASTE/.test(JSON.stringify(firebaseConfig))||!firebaseConfig.databaseURL){showSetup();return;}
+  if(typeof firebase==='undefined'){$('conn').textContent='Firebaseの読み込みに失敗しました（ネット環境やホスティングを確認してください）。';$('conn').style.display='block';return;}
+  try{firebase.initializeApp(firebaseConfig);}catch(e){}
+  rootRef=firebase.database().ref(ROOM);
+  firebase.database().ref('.info/connected').on('value',s=>{
+    const ok=!!s.val();$('conn').style.display=ok?'none':'block';
+    if(ok&&me&&myKey){                       // 再接続したら自分のノードを張り直す
+      const node=rootRef.child('judges/'+myKey);
+      node.set({name:me.name,points:myPts,joined:myJoined});
+      node.onDisconnect().remove();
+    }
+  });
+  rootRef.on('value',snap=>{
+    data=snap.val()||{};
+    if(!data.state){rootRef.child('state').set({maxPerJudge:2,qNo:1});return;}
+    state={maxPerJudge:data.state.maxPerJudge||2,qNo:data.state.qNo||1};
+    render();
+  },err=>{$('conn').textContent='データベースに接続できません（ルール設定を確認してください）。';$('conn').style.display='block';});
+  try{const n=localStorage.getItem('vgpName');if(n)$('nm').value=n;}catch(e){}
+  $('join').style.display='flex';
+}
+
+/* ---------- wire ---------- */
+$('joinJudge').onclick=joinAsJudge;
+$('joinWatch').onclick=joinAsWatcher;
+$('nm').addEventListener('keydown',e=>{if(e.key==='Enter')joinAsJudge();});
+$('buzz').onclick=press;
+$('undo').onclick=undo;
+$('gear').onclick=()=>$('settings').classList.toggle('open');
+$('qPlus').onclick=()=>setQ(1);
+$('qMinus').onclick=()=>setQ(-1);
+$('nextQ').onclick=()=>resetScores(true,'第'+((state.qNo||1)+1)+'問へ進み、点数を全員0に戻します。よろしいですか？');
+$('resetScores').onclick=()=>resetScores(false,'今の問題の点数を全員0に戻します。よろしいですか？');
+$('mPlus').onclick=()=>setMax(1);
+$('mMinus').onclick=()=>setMax(-1);
+$('soundTog').onclick=function(){soundOn=!soundOn;this.classList.toggle('on',soundOn);};
+boot();
+</script>
