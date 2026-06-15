@@ -243,26 +243,24 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 <script>
-/* =================================================================
-   ① ここに Firebase の設定を貼り付けてください（PASTE_… を置き換え）
-   ================================================================= */
 const firebaseConfig = {
-  apiKey: "PASTE_API_KEY",
-  authDomain: "PASTE.firebaseapp.com",
-  databaseURL: "https://PASTE-default-rtdb.firebaseio.com",
-  projectId: "PASTE",
-  appId: "PASTE_APP_ID"
+  apiKey: "AIzaSyA5VxQxHGcXtYWXTrXYFgQR-L2TZ7l7HWg",
+  authDomain: "saitenvippon.firebaseapp.com",
+  databaseURL: "https://saitenvippon-default-rtdb.firebaseio.com",
+  projectId: "saitenvippon",
+  storageBucket: "saitenvippon.firebasestorage.app",
+  messagingSenderId: "807846262745",
+  appId: "1:807846262745:web:c758f5e8cf92ef86124bc8",
+  measurementId: "G-V38QSNFPJF"
 };
-/* ================================================================= */
 
 const $=id=>document.getElementById(id);
-const ROOM='vippon';   // 別のイベント用に分けたいときはここを変える
+const ROOM='vippon';
 let rootRef=null, data={}, state={maxPerJudge:2,qNo:1};
 let me=null, myKey=null, myJoined=0, myPts=0, soundOn=true, winShown=false, ac=null;
 
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 
-/* ---------- audio / fx ---------- */
 function ding(p){if(!soundOn)return;try{ac=ac||new(window.AudioContext||window.webkitAudioContext)();
   const o=ac.createOscillator(),g=ac.createGain();o.type='triangle';o.frequency.value=p?880:660;
   o.connect(g);g.connect(ac.destination);g.gain.setValueAtTime(.0001,ac.currentTime);
@@ -287,7 +285,6 @@ function confetti(){if(matchMedia('(prefers-reduced-motion:reduce)').matches)ret
       ctx.fillStyle=p.c;ctx.fillRect(-p.s/2,-p.s/2,p.s,p.s*1.6);ctx.restore();});
     if(t<90)requestAnimationFrame(loop);else ctx.clearRect(0,0,cv.width,cv.height);})();}
 
-/* ---------- derive ---------- */
 function judges(){
   const o=data.judges||{};
   return Object.keys(o).map(k=>Object.assign({key:k},o[k]))
@@ -296,10 +293,9 @@ function judges(){
 function syncMyPts(){
   if(!me||!myKey)return;
   const n=(data.judges||{})[myKey];
-  if(n&&typeof n.points==='number')myPts=n.points;   // ホストのリセット等を反映
+  if(n&&typeof n.points==='number')myPts=n.points;
 }
 
-/* ---------- render ---------- */
 function render(){
   syncMyPts();
   $('qNo').textContent=state.qNo;$('qVal').textContent=state.qNo;$('mVal').textContent=state.maxPerJudge;
@@ -326,7 +322,6 @@ function render(){
     $('undo').disabled=mp<=0;$('undo').style.opacity=mp<=0?.45:1;}
 }
 
-/* ---------- actions ---------- */
 function press(){if(!me||!myKey)return;if(myPts>=state.maxPerJudge)return;
   myPts++;flash();ding(myPts>1);rootRef.child('judges/'+myKey).update({points:myPts});}
 function undo(){if(!me||!myKey)return;if(myPts<=0)return;
@@ -341,7 +336,6 @@ function setMax(d){let v=Math.max(1,Math.min(9,(state.maxPerJudge||2)+d));
   Object.keys(o).forEach(k=>{if((o[k].points||0)>v)up['judges/'+k+'/points']=v;});
   rootRef.update(up);}
 
-/* ---------- join ---------- */
 function joinAsJudge(){const name=$('nm').value.trim();if(!name){$('nm').focus();return;}
   const o=data.judges||{};
   if(!myKey&&Object.keys(o).length>=5){alert('ジャッジはすでに5人です。観戦で参加してください。');return;}
@@ -350,12 +344,11 @@ function joinAsJudge(){const name=$('nm').value.trim();if(!name){$('nm').focus()
   try{localStorage.setItem('vgpName',name);}catch(e){}
   const node=rootRef.child('judges/'+myKey);
   node.set({name,points:myPts,joined:myJoined});
-  node.onDisconnect().remove();           // タブを閉じる/切断で自動削除（幽霊防止）
+  node.onDisconnect().remove();
   $('meLabel').textContent='ジャッジ：'+name;startApp();}
 function joinAsWatcher(){me=null;$('meLabel').textContent='観戦中';$('mine').style.display='none';startApp();}
 function startApp(){$('join').style.display='none';$('app').style.display='block';render();}
 
-/* ---------- boot ---------- */
 function showSetup(){$('setup').style.display='flex';}
 function boot(){
   if(/PASTE/.test(JSON.stringify(firebaseConfig))||!firebaseConfig.databaseURL){showSetup();return;}
@@ -364,7 +357,7 @@ function boot(){
   rootRef=firebase.database().ref(ROOM);
   firebase.database().ref('.info/connected').on('value',s=>{
     const ok=!!s.val();$('conn').style.display=ok?'none':'block';
-    if(ok&&me&&myKey){                       // 再接続したら自分のノードを張り直す
+    if(ok&&me&&myKey){
       const node=rootRef.child('judges/'+myKey);
       node.set({name:me.name,points:myPts,joined:myJoined});
       node.onDisconnect().remove();
@@ -380,7 +373,6 @@ function boot(){
   $('join').style.display='flex';
 }
 
-/* ---------- wire ---------- */
 $('joinJudge').onclick=joinAsJudge;
 $('joinWatch').onclick=joinAsWatcher;
 $('nm').addEventListener('keydown',e=>{if(e.key==='Enter')joinAsJudge();});
